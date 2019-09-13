@@ -7,25 +7,20 @@ public class AccessPoint implements Comparable{
     private double y;
     private double height;
     private String bssid;
+    private String friendlyName;
 
-    public AccessPoint(String bssid, double x, double y, double height)
+    public AccessPoint(String bssid, double x, double y, double height, String friendlyName)
     {
         this.bssid = bssid;
         this.x = x;
         this.y = y;
         this.height = height;
+        this.friendlyName = friendlyName;
     }
 
-    public double getX() {
-        return x;
-    }
-
-    public double getY() {
-        return y;
-    }
-
-    public double getHeight() {
-        return height;
+    public double[] getPosition()
+    {
+        return new double [] {this.x, this.y, this.height};
     }
 
     public String getBssid() {

@@ -53,6 +53,8 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     final Handler mRangeRequestDelayHandler = new Handler();
     private int mMillisecondsDelayBeforeNewRangingRequest = 1000;
     private boolean bStop = true;
+    private Configuration configuration;
+    private List<AccessPoint> buildingMap;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,7 +66,14 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         mWifiScanReceiver = new WifiScanReceiver();
         mWifiRttManager = (WifiRttManager) getSystemService(Context.WIFI_RTT_RANGING_SERVICE);
         mRttRangingResultCallback = new RttRangingResultCallback();
-        //  todo handle screen rotation
+        configuration = new Configuration(Configuration.CONFIGURATION_TYPE.TWO_DIMENSIONAL_2);
+        buildingMap = configuration.getConfiguration();
+        Collections.sort(buildingMap);
+
+        //  Map Testing
+        //Intent mapIntent = new Intent(this, MapActivity.class);
+        //startActivity(mapIntent);
+        //  End Map Testing
 
     }
 
@@ -154,8 +163,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
                         showMessage("AP Supporting RTT: " + wifiRttAP.SSID + " (" + wifiRttAP.BSSID + ")");
                     }
                     //  Start ranging
-                    //  todo should range for 4 APs and if don't have this number, display an error
-                    if (WifiRttAPs.size() != 1)
+                    if (WifiRttAPs.size() < configuration.getConfiguration().size())
                         showMessage("Did not find enough RTT enabled APs.  Found: " + WifiRttAPs.size());
                     else {
                         startRangingRequest(WifiRttAPs);
@@ -170,8 +178,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     @SuppressLint("MissingPermission")
     private void startRangingRequest(List<ScanResult> scanResults) {
         RangingRequest rangingRequest =
-                new RangingRequest.Builder().addAccessPoint(scanResults.get(0)).build();
-        //  todo add additional access points
+                new RangingRequest.Builder().addAccessPoints(scanResults).build();
 
         mWifiRttManager.startRanging(
                 rangingRequest, getApplication().getMainExecutor(), mRttRangingResultCallback);
@@ -204,77 +211,95 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             // Because we are only requesting RangingResult for one access point (not multiple
             // access points), this will only ever be one. (Use loops when requesting RangingResults
             // for multiple access points.)
-            if (list.size() == 1) {
-                //  todo check the list is sorted correctly
+            if (list.size() >= configuration.getConfiguration().size()) {
                 Collections.sort(list, new Comparator<RangingResult>() {
                     @Override
                     public int compare(RangingResult o1, RangingResult o2) {
                         return o1.getMacAddress().toString().compareTo(o2.getMacAddress().toString());
                     }
                 });
-                RangingResult rangingResult = list.get(0);
 
-
-                //  todo check that the received ranging results match the expected mac addresses
-                //  todo calculate the distances to the APs
-                if (rangingResult.getStatus() == RangingResult.STATUS_SUCCESS) {
-                    showMessage("Distance to " + rangingResult.getMacAddress().toString() + ": " + rangingResult.getDistanceMm() + "mm");
-
-                    //  todo get this from the configurations
-                    double[][] positions = new double[][] { {0.0, 10.0, 0.0}, {10.0, 0.0, 0.0} };
-
-                    //  todo extend this to 4 APs
-                    double[] distances = new double[2];
-                    distances[0] = rangingResult.getDistanceMm();
-                    distances[1] = rangingResult.getDistanceMm();
-
-                    //  todo catch exception if there is only one position
-                    TrilaterationFunction trilaterationFunction = new TrilaterationFunction(positions, distances);
-                    LinearLeastSquaresSolver lSolver = new LinearLeastSquaresSolver(trilaterationFunction);
-                    NonLinearLeastSquaresSolver nlSolver = new NonLinearLeastSquaresSolver(trilaterationFunction, new LevenbergMarquardtOptimizer());
-                    RealVector x = lSolver.solve();
-                    LeastSquaresOptimizer.Optimum optimum = nlSolver.solve();
-                    double[] centroid = optimum.getPoint().toArray();
-                    //  todo confirm which is the actual output
-                    //  todo - x and centroid are the same
-                    showMessage("Trilateration (x): " + x);
-
-
-/*
-                        mNumberOfSuccessfulRangeRequests++;
-
-                        mRangeTextView.setText((rangingResult.getDistanceMm() / 1000f) + "");
-                        addDistanceToHistory(rangingResult.getDistanceMm());
-                        mRangeMeanTextView.setText((getDistanceMean() / 1000f) + "");
-
-                        mRangeSDTextView.setText(
-                                (rangingResult.getDistanceStdDevMm() / 1000f) + "");
-                        addStandardDeviationOfDistanceToHistory(
-                                rangingResult.getDistanceStdDevMm());
-                        mRangeSDMeanTextView.setText(
-                                (getStandardDeviationOfDistanceMean() / 1000f) + "");
-
-                        mRssiTextView.setText(rangingResult.getRssi() + "");
-                        mSuccessesInBurstTextView.setText(
-                                rangingResult.getNumSuccessfulMeasurements()
-                                        + "/"
-                                        + rangingResult.getNumAttemptedMeasurements());
-
-                        float successRatio =
-                                ((float) mNumberOfSuccessfulRangeRequests
-                                        / (float) mNumberOfRangeRequests)
-                                        * 100;
-                        mSuccessRatioTextView.setText(successRatio + "%");
-
-                        mNumberOfRequestsTextView.setText(mNumberOfRangeRequests + "");
-*/
-                    } else if (rangingResult.getStatus()
-                            == RangingResult.STATUS_RESPONDER_DOES_NOT_SUPPORT_IEEE80211MC) {
+                List<RangingResult> rangingResultsOfInterest = new ArrayList<RangingResult>();
+                rangingResultsOfInterest.clear();
+                for (int i = 0; i < list.size(); i++) {
+                    RangingResult rangingResult = list.get(i);
+                    if (rangingResult.getStatus() == RangingResult.STATUS_SUCCESS) {
+                        if (!configuration.getMacAddresses().contains(rangingResult.getMacAddress().toString())) {
+                            //  The Mac address found is not in our configuration
+                            showMessage("Unrecognised MAC address: " + rangingResult.getMacAddress().toString());
+                        } else {
+                            rangingResultsOfInterest.add(rangingResult);
+                        }
+                    } else if (rangingResult.getStatus() == RangingResult.STATUS_RESPONDER_DOES_NOT_SUPPORT_IEEE80211MC) {
                         showMessage("RangingResult failed (AP doesn't support IEEE80211 MC.");
-
                     } else {
                         showMessage("RangingResult failed.");
                     }
+                }
+
+                //  Expect us to have n APs in the rangingResults to our nearby APs
+                //  todo remove any APs from the building map that we couldn't range to (need at least 2)
+                if (rangingResultsOfInterest.size() != configuration.getConfiguration().size())
+                {
+                    showMessage("Could not find all the APs defined in the configuration to range off of");
+                    if (!bStop)
+                        queueNextRangingRequest();
+                    return;
+                }
+
+                //  Build up the position array of the APs we are ranging to
+                double[][] positions = new double[buildingMap.size()][3];
+                for (int i = 0; i < buildingMap.size(); i++)
+                {
+                    positions[i] = buildingMap.get(i).getPosition();
+                }
+
+                for (int i = 0; i < rangingResultsOfInterest.size(); i++)
+                {
+                    showMessage("Distance to " + rangingResultsOfInterest.get(i).getMacAddress().toString() +
+                            ": " + rangingResultsOfInterest.get(i).getDistanceMm() + "mm");
+                }
+
+                double[] distances = new double[rangingResultsOfInterest.size()];
+                for (int i = 0; i < rangingResultsOfInterest.size(); i++)
+                {
+                    distances[i] = rangingResultsOfInterest.get(i).getDistanceMm();
+                }
+
+
+                //TrilaterationFunction trilaterationFunction = new TrilaterationFunction(positions, distances);
+                //LinearLeastSquaresSolver lSolver = new LinearLeastSquaresSolver(trilaterationFunction);
+                //NonLinearLeastSquaresSolver nlSolver = new NonLinearLeastSquaresSolver(trilaterationFunction, new LevenbergMarquardtOptimizer());
+                //  x is the same result as centroid.
+                //RealVector x = lSolver.solve();
+                //LeastSquaresOptimizer.Optimum optimum = nlSolver.solve();
+                try {
+                    NonLinearLeastSquaresSolver solver = new NonLinearLeastSquaresSolver(new TrilaterationFunction(positions, distances), new LevenbergMarquardtOptimizer());
+                    LeastSquaresOptimizer.Optimum optimum = solver.solve();
+
+                    double[] centroid = optimum.getPoint().toArray();
+                    //RealVector standardDeviation = optimum.getSigma(0);
+
+                    String sCentroid = "Trilateration (centroid): ";
+                    for (int i = 0; i < centroid.length; i++)
+                        sCentroid += "" + (int)centroid[i] + ", ";
+                    showMessage(sCentroid);
+                    //  todo - move this logic into a foreground service - this is a hack to get things working
+                    Intent mapIntent = new Intent(getApplicationContext(), MapActivity.class);
+                    mapIntent.putExtra("location", centroid);
+                    mapIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                    startActivity(mapIntent);
+
+                }
+                catch (Exception e)
+                {
+                    showMessage("Error during trilateration: " + e.getMessage());
+                }
+
+            }
+            else
+            {
+                showMessage("Could not find enough Ranging Results");
             }
             if (!bStop)
                 queueNextRangingRequest();
