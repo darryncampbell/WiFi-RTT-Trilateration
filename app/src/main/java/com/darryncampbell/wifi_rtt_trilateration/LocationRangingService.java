@@ -36,6 +36,7 @@ import org.apache.commons.math3.fitting.leastsquares.LevenbergMarquardtOptimizer
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 
 public class LocationRangingService extends Service {
@@ -52,6 +53,7 @@ public class LocationRangingService extends Service {
     private boolean bStop = true;
     private Configuration configuration;
     private List<AccessPoint> buildingMap;
+    private ArrayList<List<RangingResult>> historicDistances;
 
 
     public LocationRangingService() {
@@ -67,6 +69,11 @@ public class LocationRangingService extends Service {
         configuration = new Configuration(Configuration.CONFIGURATION_TYPE.TWO_DIMENSIONAL_2);
         buildingMap = configuration.getConfiguration();
         Collections.sort(buildingMap);
+        historicDistances = new ArrayList<List<RangingResult>>();
+        for (int i = 0; i < buildingMap.size(); i++)
+        {
+            historicDistances.add(new ArrayList<RangingResult>());
+        }
     }
 
     @Override
@@ -275,14 +282,24 @@ public class LocationRangingService extends Service {
 
                 for (int i = 0; i < rangingResultsOfInterest.size(); i++)
                 {
+                    historicDistances.get(i).add(rangingResultsOfInterest.get(i));
+                    if (historicDistances.get(i).size() == Constants.NUM_HISTORICAL_POINTS + 1)
+                        historicDistances.get(i).remove(0);
                     showMessage("Distance to " + rangingResultsOfInterest.get(i).getMacAddress().toString() +
                             ": " + rangingResultsOfInterest.get(i).getDistanceMm() + "mm");
+                    showMessage("Distance to " + rangingResultsOfInterest.get(i).getMacAddress().toString() +
+                            " [Ave]: " + average(historicDistances.get(i)));
                 }
 
                 double[] distances = new double[rangingResultsOfInterest.size()];
                 for (int i = 0; i < rangingResultsOfInterest.size(); i++)
                 {
                     distances[i] = rangingResultsOfInterest.get(i).getDistanceMm();
+                }
+                double[] distancesAverage = new double[rangingResultsOfInterest.size()];
+                for (int i = 0; i < rangingResultsOfInterest.size(); i++)
+                {
+                    distancesAverage[i] = average(historicDistances.get(i));
                 }
 
 
@@ -293,7 +310,10 @@ public class LocationRangingService extends Service {
                 //RealVector x = lSolver.solve();
                 //LeastSquaresOptimizer.Optimum optimum = nlSolver.solve();
                 try {
-                    NonLinearLeastSquaresSolver solver = new NonLinearLeastSquaresSolver(new TrilaterationFunction(positions, distances), new LevenbergMarquardtOptimizer());
+                    //  Instantaneous
+                    //NonLinearLeastSquaresSolver solver = new NonLinearLeastSquaresSolver(new TrilaterationFunction(positions, distances), new LevenbergMarquardtOptimizer());
+                    //  Average
+                    NonLinearLeastSquaresSolver solver = new NonLinearLeastSquaresSolver(new TrilaterationFunction(positions, distancesAverage), new LevenbergMarquardtOptimizer());
                     LeastSquaresOptimizer.Optimum optimum = solver.solve();
 
                     double[] centroid = optimum.getPoint().toArray();
@@ -326,6 +346,16 @@ public class LocationRangingService extends Service {
             if (!bStop)
                 queueNextRangingRequest();
         }
+    }
+
+    private double average(List<RangingResult> rangingResults) {
+        double accumulator = 0.0;
+        int n = rangingResults.size();
+        for (int i = 0; i < rangingResults.size(); i++)
+        {
+            accumulator += rangingResults.get(i).getDistanceMm();
+        }
+        return accumulator / (double)n;
     }
 
     public void showMessage(String message) {
