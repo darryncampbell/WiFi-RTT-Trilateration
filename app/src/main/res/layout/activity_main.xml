@@ -7,15 +7,15 @@
     tools:context=".MainActivity">
 
     <Button
-        android:id="@+id/btnFindAccessPoints"
+        android:id="@+id/btnClear"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:layout_marginBottom="8dp"
-        android:onClick="onClickFindAccessPointsAndRange"
-        android:text="Start Ranging"
+        android:onClick="btnClearClick"
+        android:text="Clear"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/btnStop"
+        app:layout_constraintEnd_toStartOf="@+id/btnShowMap"
         app:layout_constraintStart_toStartOf="parent" />
 
     <ScrollView
@@ -23,7 +23,7 @@
         android:layout_height="0dp"
         android:layout_marginStart="8dp"
         android:layout_marginEnd="8dp"
-        app:layout_constraintBottom_toTopOf="@+id/btnFindAccessPoints"
+        app:layout_constraintBottom_toTopOf="@+id/btnClear"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -46,15 +46,15 @@
     </ScrollView>
 
     <Button
-        android:id="@+id/btnStop"
+        android:id="@+id/btnShowMap"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:layout_marginBottom="8dp"
-        android:onClick="onClickStopRanging"
-        android:text="Stop Ranging"
+        android:onClick="btnShowMapClick"
+        android:text="Show Map"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/btnFindAccessPoints" />
+        app:layout_constraintStart_toEndOf="@+id/btnClear" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
