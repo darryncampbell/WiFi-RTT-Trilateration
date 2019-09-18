@@ -152,6 +152,7 @@ public class LocationRangingService extends Service {
         else if (intent.getAction().equals(Constants.ACTION.STOP_LOCATION_RANGING_SERVICE))
         {
             mStarted = false;
+            bStop = true;
             stopForeground(true);
             stopSelf();
 
