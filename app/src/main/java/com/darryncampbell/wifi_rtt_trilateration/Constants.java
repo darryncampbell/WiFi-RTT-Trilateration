@@ -2,8 +2,6 @@ package com.darryncampbell.wifi_rtt_trilateration;
 
 public class Constants {
 
-    public static final int NUM_HISTORICAL_POINTS = 5;
-
     public interface ACTION {
         String START_LOCATION_RANGING_SERVICE = "com.darryncampbell.wifi_rtt_trilateration.action.startrangingservice";
         String STOP_LOCATION_RANGING_SERVICE = "com.darryncampbell.wifi_rtt_trilateration.action.stoprangingservice";

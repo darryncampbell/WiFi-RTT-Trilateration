@@ -21,8 +21,6 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
-import android.widget.Button;
-import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
@@ -49,11 +47,11 @@ public class LocationRangingService extends Service {
     private WifiRttManager mWifiRttManager;
     private RttRangingResultCallback mRttRangingResultCallback;
     final Handler mRangeRequestDelayHandler = new Handler();
-    private int mMillisecondsDelayBeforeNewRangingRequest = 1000;
+    private int mMillisecondsDelayBeforeNewRangingRequest = Configuration.MILLISECONDS_BETWEEN_RANGING_REQUESTS;
     private boolean bStop = true;
     private Configuration configuration;
     private List<AccessPoint> buildingMap;
-    private ArrayList<List<RangingResult>> historicDistances;
+    private HashMap<String, ArrayList<RangingResult>> historicalDistances;
 
 
     public LocationRangingService() {
@@ -66,13 +64,14 @@ public class LocationRangingService extends Service {
         mWifiScanReceiver = new WifiScanReceiver();
         mWifiRttManager = (WifiRttManager) getSystemService(Context.WIFI_RTT_RANGING_SERVICE);
         mRttRangingResultCallback = new RttRangingResultCallback();
-        configuration = new Configuration(Configuration.CONFIGURATION_TYPE.TWO_DIMENSIONAL_2);
+        configuration = new Configuration(Configuration.CONFIGURATION_TYPE.TESTING_2);
+//        configuration = new Configuration(Configuration.CONFIGURATION_TYPE.TWO_DIMENSIONAL_2);
         buildingMap = configuration.getConfiguration();
         Collections.sort(buildingMap);
-        historicDistances = new ArrayList<List<RangingResult>>();
+        historicalDistances = new HashMap<String, ArrayList<RangingResult>>();
         for (int i = 0; i < buildingMap.size(); i++)
         {
-            historicDistances.add(new ArrayList<RangingResult>());
+            historicalDistances.put(buildingMap.get(i).getBssid().toString(), new ArrayList<RangingResult>());
         }
     }
 
@@ -232,39 +231,42 @@ public class LocationRangingService extends Service {
         }
 
         @Override
-        public void onRangingResults(@NonNull List<RangingResult> list) {
-            Log.d(TAG, "onRangingResults(): " + list);
+        public void onRangingResults(@NonNull List<RangingResult> rangingResultsList) {
+            Log.d(TAG, "onRangingResults(): " + rangingResultsList);
 
-            // Because we are only requesting RangingResult for one access point (not multiple
-            // access points), this will only ever be one. (Use loops when requesting RangingResults
-            // for multiple access points.)
-            if (list.size() >= configuration.getConfiguration().size()) {
-                Collections.sort(list, new Comparator<RangingResult>() {
+            //  Ensure we have more APs in the list of ranging results than were present in the configuration
+            if (rangingResultsList.size() >= configuration.getConfiguration().size()) {
+
+                //  Sort the received ranging results by MAC address
+                //  (order needs to match the order in the config, previously sorted by MAC address)
+                Collections.sort(rangingResultsList, new Comparator<RangingResult>() {
                     @Override
                     public int compare(RangingResult o1, RangingResult o2) {
                         return o1.getMacAddress().toString().compareTo(o2.getMacAddress().toString());
                     }
                 });
 
-                List<RangingResult> rangingResultsOfInterest = new ArrayList<RangingResult>();
+                //  Check that the received ranging results are valid and appropriate
+                List<RangingResult> rangingResultsOfInterest = new ArrayList<>();
                 rangingResultsOfInterest.clear();
-                for (int i = 0; i < list.size(); i++) {
-                    RangingResult rangingResult = list.get(i);
-                    if (rangingResult.getStatus() == RangingResult.STATUS_SUCCESS) {
-                        if (!configuration.getMacAddresses().contains(rangingResult.getMacAddress().toString())) {
-                            //  The Mac address found is not in our configuration
-                            showMessage("Unrecognised MAC address: " + rangingResult.getMacAddress().toString());
-                        } else {
-                            rangingResultsOfInterest.add(rangingResult);
-                        }
-                    } else if (rangingResult.getStatus() == RangingResult.STATUS_RESPONDER_DOES_NOT_SUPPORT_IEEE80211MC) {
-                        showMessage("RangingResult failed (AP doesn't support IEEE80211 MC.");
+                for (int i = 0; i < rangingResultsList.size(); i++) {
+                    RangingResult rangingResult = rangingResultsList.get(i);
+                    if (!configuration.getMacAddresses().contains(rangingResult.getMacAddress().toString())) {
+                        //  The Mac address found is not in our configuration
+                        showMessage("Unrecognised MAC address: " + rangingResult.getMacAddress().toString() + ", ignoring");
                     } else {
-                        showMessage("RangingResult failed. (" + rangingResult.getMacAddress().toString());
+                        if (rangingResult.getStatus() == RangingResult.STATUS_SUCCESS) {
+                            rangingResultsOfInterest.add(rangingResult);
+                        } else if (rangingResult.getStatus() == RangingResult.STATUS_RESPONDER_DOES_NOT_SUPPORT_IEEE80211MC) {
+                            showMessage("RangingResult failed (AP doesn't support IEEE80211 MC.");
+                        } else {
+                            showMessage("RangingResult failed. (" + rangingResult.getMacAddress().toString() + ")");
+                        }
                     }
                 }
+                //  rangingResultsOfInterest now contains the list of APs from whom we have received valid ranging results
 
-                //  Expect us to have n APs in the rangingResults to our nearby APs
+                //  Check that every AP in our configuration returned a valid ranging result
                 //  Potential enhancement: could remove any APs from the building map that we couldn't range to (need at least 2)
                 if (rangingResultsOfInterest.size() != configuration.getConfiguration().size())
                 {
@@ -274,65 +276,37 @@ public class LocationRangingService extends Service {
                     return;
                 }
 
-                //  Build up the position array of the APs we are ranging to
-                double[][] positions = new double[buildingMap.size()][3];
+                for (int i = 0; i < rangingResultsOfInterest.size(); i++)
+                {
+                    ArrayList temp = historicalDistances.get(rangingResultsOfInterest.get(i).getMacAddress().toString());
+                    temp.add(rangingResultsOfInterest.get(i));
+                    if (temp.size() == Configuration.NUM_HISTORICAL_POINTS + 1)
+                        temp.remove(0);
+                    showMessage("Distance to " + rangingResultsOfInterest.get(i).getMacAddress().toString() +
+                            " [Ave]: " + (int)weighted_average(historicalDistances.get(rangingResultsOfInterest.get(i).getMacAddress().toString())) + "mm");
+                    showMessage("Distance to " + rangingResultsOfInterest.get(i).getMacAddress().toString() +
+                            " : " + rangingResultsOfInterest.get(i).getMacAddress().toString() + "mm");
+                }
+
+                //  historicalDistances now contains an arraylist of historic distances for each AP
+                //  because of an earlier check, we know that every AP in the building map has an associated
+                //  entry in the history of observed ranging results
+                //  Create the positions and distances arrays required by the multilateration algorithm
+                double[][] positions = new double[buildingMap.size()][3]; //  3 dimensions
+                double[] distances = new double[buildingMap.size()];
                 for (int i = 0; i < buildingMap.size(); i++)
                 {
                     positions[i] = buildingMap.get(i).getPosition();
+                    distances[i] = weighted_average(historicalDistances.get(rangingResultsOfInterest.get(i).getMacAddress().toString()));
                 }
 
-                for (int i = 0; i < rangingResultsOfInterest.size(); i++)
-                {
-                    historicDistances.get(i).add(rangingResultsOfInterest.get(i));
-                    if (historicDistances.get(i).size() == Constants.NUM_HISTORICAL_POINTS + 1)
-                        historicDistances.get(i).remove(0);
-                    showMessage("Distance to " + rangingResultsOfInterest.get(i).getMacAddress().toString() +
-                            ": " + rangingResultsOfInterest.get(i).getDistanceMm() + "mm");
-                    showMessage("Distance to " + rangingResultsOfInterest.get(i).getMacAddress().toString() +
-                            " [Ave]: " + average(historicDistances.get(i)));
-                }
-
-                double[] distances = new double[rangingResultsOfInterest.size()];
-                for (int i = 0; i < rangingResultsOfInterest.size(); i++)
-                {
-                    distances[i] = rangingResultsOfInterest.get(i).getDistanceMm();
-                }
-                double[] distancesAverage = new double[rangingResultsOfInterest.size()];
-                for (int i = 0; i < rangingResultsOfInterest.size(); i++)
-                {
-                    distancesAverage[i] = average(historicDistances.get(i));
-                }
-
-
-                //TrilaterationFunction trilaterationFunction = new TrilaterationFunction(positions, distances);
-                //LinearLeastSquaresSolver lSolver = new LinearLeastSquaresSolver(trilaterationFunction);
-                //NonLinearLeastSquaresSolver nlSolver = new NonLinearLeastSquaresSolver(trilaterationFunction, new LevenbergMarquardtOptimizer());
-                //  x is the same result as centroid.
-                //RealVector x = lSolver.solve();
-                //LeastSquaresOptimizer.Optimum optimum = nlSolver.solve();
                 try {
-                    //  Instantaneous
-                    //NonLinearLeastSquaresSolver solver = new NonLinearLeastSquaresSolver(new TrilaterationFunction(positions, distances), new LevenbergMarquardtOptimizer());
-                    //  Average
-                    NonLinearLeastSquaresSolver solver = new NonLinearLeastSquaresSolver(new TrilaterationFunction(positions, distancesAverage), new LevenbergMarquardtOptimizer());
+                    NonLinearLeastSquaresSolver solver = new NonLinearLeastSquaresSolver(new TrilaterationFunction(positions, distances), new LevenbergMarquardtOptimizer());
                     LeastSquaresOptimizer.Optimum optimum = solver.solve();
-
                     double[] centroid = optimum.getPoint().toArray();
-                    //RealVector standardDeviation = optimum.getSigma(0);
-
-                    //String sCentroid = "Trilateration (centroid): ";
-                    //for (int i = 0; i < centroid.length; i++)
-                    //    sCentroid += "" + (int)centroid[i] + ", ";
-                    //showMessage(sCentroid);
-                    //Intent mapIntent = new Intent(getApplicationContext(), MapActivity.class);
-                    //mapIntent.putExtra("location", centroid);
-                    //mapIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-                    //startActivity(mapIntent);
-
                     Intent centroidIntent = new Intent(Constants.SERVICE_COMMS.LOCATION_COORDS);
                     centroidIntent.putExtra(Constants.SERVICE_COMMS.LOCATION_COORDS, centroid);
                     sendBroadcast(centroidIntent);
-
                 }
                 catch (Exception e)
                 {
@@ -349,14 +323,17 @@ public class LocationRangingService extends Service {
         }
     }
 
-    private double average(List<RangingResult> rangingResults) {
-        double accumulator = 0.0;
-        int n = rangingResults.size();
+
+    private double weighted_average(List<RangingResult> rangingResults) {
+        //  https://en.wikipedia.org/wiki/Weighted_arithmetic_mean#Variance_weights
+        double weighted_numerator = 0.0;
+        double weighted_demoninator = 0.0;
         for (int i = 0; i < rangingResults.size(); i++)
         {
-            accumulator += rangingResults.get(i).getDistanceMm();
+            weighted_numerator += (rangingResults.get(i).getDistanceMm() * (1.0 / (rangingResults.get(i).getDistanceStdDevMm() ^ 2)));
+            weighted_demoninator += (1.0 / (rangingResults.get(i).getDistanceStdDevMm() ^ 2));
         }
-        return accumulator / (double)n;
+        return weighted_numerator / weighted_demoninator;
     }
 
     public void showMessage(String message) {
