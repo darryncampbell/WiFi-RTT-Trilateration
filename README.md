@@ -10,7 +10,7 @@ Combining Android WiFi-RTT (802.11mc) with multilateration to determine position
 
 ## Testing:
 This project has been tested with the following:
-- Pixel 2 XL running Android Pie
+- Pixel 2 XL running Android Pie and Android 10
 - Google WiFi access points
 
 ## Prerequisites
@@ -32,6 +32,9 @@ A lot of the calculations to scale my coordinate system to display the pin on my
 
 ## Configuration
 See the Configuration.java file for example AP layouts I used in my testing.  You can also adjust the frequency between ranging requests as well as the number of historical points to included in the moving average.
+
+## Further work
+- I did not look into the [ResponderLocation API](https://developer.android.com/reference/android/net/wifi/rtt/ResponderLocation) introduced in Android 10
 
 ## Links:
 - Google docs:

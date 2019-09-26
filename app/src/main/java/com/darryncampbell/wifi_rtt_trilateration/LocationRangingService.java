@@ -64,8 +64,7 @@ public class LocationRangingService extends Service {
         mWifiScanReceiver = new WifiScanReceiver();
         mWifiRttManager = (WifiRttManager) getSystemService(Context.WIFI_RTT_RANGING_SERVICE);
         mRttRangingResultCallback = new RttRangingResultCallback();
-        configuration = new Configuration(Configuration.CONFIGURATION_TYPE.TESTING_2);
-//        configuration = new Configuration(Configuration.CONFIGURATION_TYPE.TWO_DIMENSIONAL_2);
+        configuration = new Configuration(Configuration.CONFIGURATION_TYPE.TWO_DIMENSIONAL_2);
         buildingMap = configuration.getConfiguration();
         Collections.sort(buildingMap);
         historicalDistances = new HashMap<String, ArrayList<RangingResult>>();
