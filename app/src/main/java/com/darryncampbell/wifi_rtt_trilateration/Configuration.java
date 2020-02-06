@@ -14,7 +14,8 @@ public class Configuration {
         TWO_DIMENSIONAL_1,   //  2D will just set all the 3rd dimensions to 0.0
         TWO_DIMENSIONAL_2,
         TESTING,
-        TESTING_2
+        TESTING_2,
+        TESTING_3
     }
 
     AccessPoint ap1;
@@ -118,6 +119,16 @@ public class Configuration {
 
             macAddresses.add(ap1.getBssid());
             macAddresses.add(ap3.getBssid());
+        }
+        else if (configuration_type == CONFIGURATION_TYPE.TESTING_3)
+        {
+            ap1 = new AccessPoint("3c:28:6d:ad:9e:ee", 3260.0, 490.0, 0.0, "Lounge");
+
+            accessPoints = new ArrayList<>();
+            macAddresses = new ArrayList<>();
+            accessPoints.add(ap1);
+
+            macAddresses.add(ap1.getBssid());
         }
 
 

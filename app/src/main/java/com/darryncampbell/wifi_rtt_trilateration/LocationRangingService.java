@@ -16,6 +16,7 @@ import android.net.wifi.WifiManager;
 import android.net.wifi.rtt.RangingRequest;
 import android.net.wifi.rtt.RangingResult;
 import android.net.wifi.rtt.RangingResultCallback;
+import android.net.wifi.rtt.ResponderLocation;
 import android.net.wifi.rtt.WifiRttManager;
 import android.os.Build;
 import android.os.Handler;
@@ -64,7 +65,8 @@ public class LocationRangingService extends Service {
         mWifiScanReceiver = new WifiScanReceiver();
         mWifiRttManager = (WifiRttManager) getSystemService(Context.WIFI_RTT_RANGING_SERVICE);
         mRttRangingResultCallback = new RttRangingResultCallback();
-        configuration = new Configuration(Configuration.CONFIGURATION_TYPE.TWO_DIMENSIONAL_2);
+        configuration = new Configuration(Configuration.CONFIGURATION_TYPE.TESTING_3);
+        //configuration = new Configuration(Configuration.CONFIGURATION_TYPE.TWO_DIMENSIONAL_2);
         buildingMap = configuration.getConfiguration();
         Collections.sort(buildingMap);
         historicalDistances = new HashMap<String, ArrayList<RangingResult>>();
@@ -256,6 +258,13 @@ public class LocationRangingService extends Service {
                     } else {
                         if (rangingResult.getStatus() == RangingResult.STATUS_SUCCESS) {
                             rangingResultsOfInterest.add(rangingResult);
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                                ResponderLocation responderLocation = rangingResultsList.get(0).getUnverifiedResponderLocation();
+                                if (responderLocation == null)
+                                    Log.d(TAG, "ResponderLocation is null (not supported)");
+                                else
+                                    Log.d(TAG, "ResponderLocation is " + responderLocation.toString());
+                            }
                         } else if (rangingResult.getStatus() == RangingResult.STATUS_RESPONDER_DOES_NOT_SUPPORT_IEEE80211MC) {
                             showMessage("RangingResult failed (AP doesn't support IEEE80211 MC.");
                         } else {
