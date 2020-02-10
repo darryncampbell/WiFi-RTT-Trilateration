@@ -68,8 +68,8 @@ public class LocationRangingService extends Service {
         mWifiScanReceiver = new WifiScanReceiver();
         mWifiRttManager = (WifiRttManager) getSystemService(Context.WIFI_RTT_RANGING_SERVICE);
         mRttRangingResultCallback = new RttRangingResultCallback();
-        configuration = new Configuration(Configuration.CONFIGURATION_TYPE.PRESENTATION_TEST);
-        //configuration = new Configuration(Configuration.CONFIGURATION_TYPE.PRESENTATION_1);
+        //configuration = new Configuration(Configuration.CONFIGURATION_TYPE.PRESENTATION_TEST);
+        configuration = new Configuration(Configuration.CONFIGURATION_TYPE.PRESENTATION_1);
         //configuration = new Configuration(Configuration.CONFIGURATION_TYPE.TESTING_3);
         //configuration = new Configuration(Configuration.CONFIGURATION_TYPE.TWO_DIMENSIONAL_2);
         buildingMap = configuration.getConfiguration();
@@ -263,7 +263,7 @@ public class LocationRangingService extends Service {
                     } else {
                         if (rangingResult.getStatus() == RangingResult.STATUS_SUCCESS) {
                             rangingResultsOfInterest.add(rangingResult);
-                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                            if (false && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
                                 ResponderLocation responderLocation = rangingResultsList.get(0).getUnverifiedResponderLocation();
                                 if (responderLocation == null)
                                     Log.d(TAG, "ResponderLocation is null (not supported)");

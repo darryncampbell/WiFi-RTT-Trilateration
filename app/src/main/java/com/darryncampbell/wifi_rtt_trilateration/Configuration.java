@@ -158,9 +158,9 @@ public class Configuration implements Parcelable {
         }
         else if (configuration_type == CONFIGURATION_TYPE.PRESENTATION_1)
         {
-            ap1 = new AccessPoint("3c:28:6d:ad:9e:ee", -2000.0, 0.0, 0.0, "LHS");
-            ap2 = new AccessPoint("58:cb:52:a9:a9:0f", 0.0, 0.0, 0.0, "Centre");
-            ap3 = new AccessPoint("58:cb:52:a9:b3:cd", 2000.0, 0.0, 0.0, "RHS");
+            ap1 = new AccessPoint("3c:28:6d:ad:9e:ee", -2000.0, -10.0, 0.0, "LHS");
+            ap2 = new AccessPoint("58:cb:52:a9:a9:0f", 0.0, 10.0, 0.0, "Centre");
+            ap3 = new AccessPoint("58:cb:52:a9:b3:cd", 2000.0, -10.0, 0.0, "RHS");
 
             accessPoints = new ArrayList<>();
             macAddresses = new ArrayList<>();
