@@ -1,10 +1,14 @@
 package com.darryncampbell.wifi_rtt_trilateration;
 
+import android.os.Parcel;
+import android.os.Parcelable;
+
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class Configuration {
+public class Configuration implements Parcelable {
 
     public static final int NUM_HISTORICAL_POINTS = 10;
     public static final int MILLISECONDS_BETWEEN_RANGING_REQUESTS = 0; //  1000
@@ -15,7 +19,10 @@ public class Configuration {
         TWO_DIMENSIONAL_2,
         TESTING,
         TESTING_2,
-        TESTING_3
+        TESTING_3,
+        TESTING_4,
+        PRESENTATION_1,
+        PRESENTATION_TEST,
     }
 
     AccessPoint ap1;
@@ -24,6 +31,8 @@ public class Configuration {
     AccessPoint ap4;
     ArrayList<AccessPoint> accessPoints;
     ArrayList<String> macAddresses;
+
+    int map_resource;
 
     public Configuration(CONFIGURATION_TYPE configuration_type)
     {
@@ -46,6 +55,7 @@ public class Configuration {
             macAddresses.add(ap2.getBssid());
             macAddresses.add(ap3.getBssid());
             macAddresses.add(ap4.getBssid());
+            map_resource = R.drawable.map_test;
         }
         else if (configuration_type == CONFIGURATION_TYPE.TWO_DIMENSIONAL_1)
         {
@@ -62,6 +72,7 @@ public class Configuration {
 
             macAddresses.add(ap1.getBssid());
             macAddresses.add(ap2.getBssid());
+            map_resource = R.drawable.map_test;
         }
         else if (configuration_type == CONFIGURATION_TYPE.TWO_DIMENSIONAL_2)
         {
@@ -82,6 +93,7 @@ public class Configuration {
             macAddresses.add(ap1.getBssid());
             macAddresses.add(ap2.getBssid());
             macAddresses.add(ap3.getBssid());
+            map_resource = R.drawable.map_test;
         }
         else if (configuration_type == CONFIGURATION_TYPE.TESTING)
         {
@@ -102,6 +114,7 @@ public class Configuration {
             macAddresses.add(ap1.getBssid());
             macAddresses.add(ap2.getBssid());
             macAddresses.add(ap3.getBssid());
+            map_resource = R.drawable.map_test;
         }
         else if (configuration_type == CONFIGURATION_TYPE.TESTING_2)
         {
@@ -119,6 +132,7 @@ public class Configuration {
 
             macAddresses.add(ap1.getBssid());
             macAddresses.add(ap3.getBssid());
+            map_resource = R.drawable.map_test;
         }
         else if (configuration_type == CONFIGURATION_TYPE.TESTING_3)
         {
@@ -129,11 +143,82 @@ public class Configuration {
             accessPoints.add(ap1);
 
             macAddresses.add(ap1.getBssid());
+            map_resource = R.drawable.map_test;
+        }
+        else if (configuration_type == CONFIGURATION_TYPE.TESTING_4)
+        {
+            ap4 = new AccessPoint("58:cb:52:a9:bd:78", 7840.0, 6850.0, 3410.0, "Bedroom 4");
+
+            accessPoints = new ArrayList<>();
+            macAddresses = new ArrayList<>();
+            accessPoints.add(ap4);
+
+            macAddresses.add(ap4.getBssid());
+            map_resource = R.drawable.map_test;
+        }
+        else if (configuration_type == CONFIGURATION_TYPE.PRESENTATION_1)
+        {
+            ap1 = new AccessPoint("3c:28:6d:ad:9e:ee", -2000.0, 0.0, 0.0, "LHS");
+            ap2 = new AccessPoint("58:cb:52:a9:a9:0f", 0.0, 0.0, 0.0, "Centre");
+            ap3 = new AccessPoint("58:cb:52:a9:b3:cd", 2000.0, 0.0, 0.0, "RHS");
+
+            accessPoints = new ArrayList<>();
+            macAddresses = new ArrayList<>();
+            accessPoints.add(ap1);
+            accessPoints.add(ap2);
+            accessPoints.add(ap3);
+
+            macAddresses.add(ap1.getBssid());
+            macAddresses.add(ap2.getBssid());
+            macAddresses.add(ap3.getBssid());
+            map_resource = R.drawable.map_3_points;
+        }
+        else if (configuration_type == CONFIGURATION_TYPE.PRESENTATION_TEST)
+        {
+            ap2 = new AccessPoint("58:cb:52:a9:a9:0f", 0.0, 0.0, 0.0, "TEST1");
+            ap4 = new AccessPoint("3c:28:6d:ad:9e:ee", 0.0, 0.0, 0.0, "TEST2");
+
+            accessPoints = new ArrayList<>();
+            macAddresses = new ArrayList<>();
+            accessPoints.add(ap2);
+            accessPoints.add(ap4);
+
+            macAddresses.add(ap2.getBssid());
+            macAddresses.add(ap4.getBssid());
+            map_resource = R.drawable.map_3_points;
         }
 
 
         Collections.sort(accessPoints);
     }
+
+    protected Configuration(Parcel in) {
+        macAddresses = in.createStringArrayList();
+        map_resource = in.readInt();
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeStringList(macAddresses);
+        dest.writeInt(map_resource);
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    public static final Creator<Configuration> CREATOR = new Creator<Configuration>() {
+        @Override
+        public Configuration createFromParcel(Parcel in) {
+            return new Configuration(in);
+        }
+
+        @Override
+        public Configuration[] newArray(int size) {
+            return new Configuration[size];
+        }
+    };
 
     public List<AccessPoint> getConfiguration()
     {

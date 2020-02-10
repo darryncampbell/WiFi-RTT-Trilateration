@@ -19,6 +19,7 @@ import android.widget.ImageView;
 public class MapActivity extends AppCompatActivity {
 
     private LocationRangingServiceReceiver locationRangingServiceReceiver = null;
+    private Configuration configuration;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,10 +53,44 @@ public class MapActivity extends AppCompatActivity {
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         double[] currentLocation = intent.getDoubleArrayExtra("location");
-        movePin(currentLocation[0], currentLocation[1], 0.0);
+        movePinTestMap(currentLocation[0], currentLocation[1], 0.0);
     }
 
-    private void movePin(double x, double y, double z) {
+    private void movePinMap3Points(double x, double y, double z) {
+        //  FOR THE PRESENTATION_1 SETUP
+        //  todo this is currently hard coded for 2D setups
+
+        final ImageView ImageView_BitmapView = findViewById(R.id.map);
+        final ImageView ImageView_Pin = findViewById(R.id.pin);
+        ImageView_Pin.setVisibility(View.VISIBLE);
+
+        //  0,0 point is 51.0204% down the image and 50.195% from the left of the image
+        float x_image_offset = (ImageView_BitmapView.getWidth() * 0.50195f);
+        float y_image_offset = (ImageView_BitmapView.getHeight() * 0.510204f);
+
+        x_image_offset = ImageView_BitmapView.getX() + x_image_offset;
+        y_image_offset = ImageView_BitmapView.getY() + y_image_offset;
+
+        float pin_width = ImageView_Pin.getWidth();
+        float pin_height = ImageView_Pin.getHeight();
+        float x_pin_offset = (pin_width / 2.0f);
+        float y_pin_offset = (pin_height) - (5.0f / 72.0f * pin_height); //  There are a few pixels at the bottom of the pin
+        //  Account for the fact that the Pin is pointing to the lower middle of the image view
+        float pinOriginX = x_image_offset - x_pin_offset;
+        float pinOriginY = y_image_offset - y_pin_offset;
+        //ImageView_Pin.setX(pinOriginX);
+        //ImageView_Pin.setY(pinOriginY);
+
+        float floorWidth = ImageView_BitmapView.getWidth() / 1024.0f;
+        float floorHeight = ImageView_BitmapView.getHeight() / 539.0f;
+
+        float scaledX = (float) (x * (322.0f / 2000.0f)) * floorWidth;
+        float scaledY = (float) (y * (322.0f / 2000.0f)) * floorHeight;
+        ImageView_Pin.setX(pinOriginX + scaledX);
+        ImageView_Pin.setY(pinOriginY - scaledY);
+    }
+
+    private void movePinTestMap(double x, double y, double z) {
         //  todo this is currently hard coded for 2D setups
 
         final ImageView ImageView_BitmapView = findViewById(R.id.map);
@@ -97,10 +132,17 @@ public class MapActivity extends AppCompatActivity {
         {
             if (intent.getAction().equals(Constants.SERVICE_COMMS.LOCATION_COORDS))
             {
+                configuration = (Configuration)intent.getParcelableExtra(Constants.SERVICE_COMMS.CONFIG);
+                ImageView imageView = findViewById(R.id.map);
+                imageView.setImageResource(configuration.map_resource);
+
                 //  double[] of current coordinates
                 double[] centroid = intent.getDoubleArrayExtra(Constants.SERVICE_COMMS.LOCATION_COORDS);
                 //  todo currently hardcoded for 2D
-                movePin(centroid[0], centroid[1], 0.0);
+                if (configuration.map_resource == R.drawable.map_test)
+                    movePinTestMap(centroid[0], centroid[1], 0.0);
+                else if (configuration.map_resource == R.drawable.map_3_points)
+                    movePinMap3Points(centroid[0], centroid[1], 0.0);
             }
             else if (intent.getAction().equals(Constants.SERVICE_COMMS.FINISH))
             {

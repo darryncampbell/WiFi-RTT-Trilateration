@@ -19,8 +19,10 @@ import android.net.wifi.rtt.RangingResultCallback;
 import android.net.wifi.rtt.ResponderLocation;
 import android.net.wifi.rtt.WifiRttManager;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Parcelable;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -32,6 +34,7 @@ import com.lemmingapex.trilateration.TrilaterationFunction;
 import org.apache.commons.math3.fitting.leastsquares.LeastSquaresOptimizer;
 import org.apache.commons.math3.fitting.leastsquares.LevenbergMarquardtOptimizer;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -65,7 +68,9 @@ public class LocationRangingService extends Service {
         mWifiScanReceiver = new WifiScanReceiver();
         mWifiRttManager = (WifiRttManager) getSystemService(Context.WIFI_RTT_RANGING_SERVICE);
         mRttRangingResultCallback = new RttRangingResultCallback();
-        configuration = new Configuration(Configuration.CONFIGURATION_TYPE.TESTING_3);
+        configuration = new Configuration(Configuration.CONFIGURATION_TYPE.PRESENTATION_TEST);
+        //configuration = new Configuration(Configuration.CONFIGURATION_TYPE.PRESENTATION_1);
+        //configuration = new Configuration(Configuration.CONFIGURATION_TYPE.TESTING_3);
         //configuration = new Configuration(Configuration.CONFIGURATION_TYPE.TWO_DIMENSIONAL_2);
         buildingMap = configuration.getConfiguration();
         Collections.sort(buildingMap);
@@ -293,7 +298,7 @@ public class LocationRangingService extends Service {
                     showMessage("Distance to " + rangingResultsOfInterest.get(i).getMacAddress().toString() +
                             " [Ave]: " + (int)weighted_average(historicalDistances.get(rangingResultsOfInterest.get(i).getMacAddress().toString())) + "mm");
                     showMessage("Distance to " + rangingResultsOfInterest.get(i).getMacAddress().toString() +
-                            " : " + rangingResultsOfInterest.get(i).getMacAddress().toString() + "mm");
+                            " : " + rangingResultsOfInterest.get(i).getDistanceMm() + "mm");
                 }
 
                 //  historicalDistances now contains an arraylist of historic distances for each AP
@@ -314,6 +319,7 @@ public class LocationRangingService extends Service {
                     double[] centroid = optimum.getPoint().toArray();
                     Intent centroidIntent = new Intent(Constants.SERVICE_COMMS.LOCATION_COORDS);
                     centroidIntent.putExtra(Constants.SERVICE_COMMS.LOCATION_COORDS, centroid);
+                    centroidIntent.putExtra(Constants.SERVICE_COMMS.CONFIG, (Parcelable)configuration);
                     sendBroadcast(centroidIntent);
                 }
                 catch (Exception e)

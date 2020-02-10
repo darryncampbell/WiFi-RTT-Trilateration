@@ -19,5 +19,6 @@ public class Constants {
         String LOCATION_COORDS = "com.darryncampbell.wifi_rtt_trilateration.service.location_coords";
         String MESSAGE = "com.darryncampbell.wifi_rtt_trilateration.service.message";
         String FINISH = "com.darryncampbell.wifi_rtt_trilateration.service.finish";
+        String CONFIG = "com.darryncampbell.wifi_rtt_trilateration.service.config";
     }
 }
