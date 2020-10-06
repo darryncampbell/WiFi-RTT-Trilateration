@@ -1,7 +1,8 @@
+*Please be aware that this application / sample is provided as-is for demonstration purposes without any guarantee of support*
+=========================================================
+
 # WiFi-RTT-Trilateration
 Combining Android WiFi-RTT (802.11mc) with multilateration to determine position
-
-**NOT FOR PRODUCTION USE - PROOF OF CONCEPT ONLY**
 
 ## Requirements:
 - Access Points supporting 802.11mc standard
